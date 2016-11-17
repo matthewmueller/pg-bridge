@@ -45,7 +45,7 @@ func main() {
 	pub := sns.New(session.New())
 
 	// setup a healthcheck on /health
-	healthPort := os.Getenv("HEALTH_PORT")
+	healthPort := os.Getenv("PORT")
 	if healthPort != "" {
 		go Health(healthPort, pg)
 	}
