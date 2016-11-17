@@ -6,7 +6,7 @@ Simple service connecting [PostgreSQL notifications](https://www.postgresql.org/
 
   - Flexible Routing: Supports one-to-one and one-to-many routing
   - Heroku-friendly: Configuration is done entirely through environment variables
-  - Health checks: Optional HTTP endpoing to ensure that this service is operating normally
+  - Health checks: Optional HTTP endpoint to ensure that this service is operating normally
 
 ## Environment Variables
 
