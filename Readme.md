@@ -10,11 +10,13 @@ Simple service connecting [PostgreSQL notifications](https://www.postgresql.org/
 
 ## Environment Variables
 
-- `AWS_ACCESS_KEY_ID`: (optional) AWS account id.
-- `AWS_SECRET_ACCESS_KEY`: (optional) AWS access key.
-- `POSTGRES_URL`: (required) URL string to connect to Postgres.
-- `HEALTH_PORT`: (optional) 5000
-- `BRIDGE_ROUTES`: (required) comma-delimited list of routes. See [Routes Format](#routes-format).
+- `POSTGRES_URL`: **(required)** URL string to connect to Postgres.
+- `BRIDGE_ROUTES`: **(required)** comma-delimited list of routes. See [Routes Format](#routes-format) for how to configure this variable.
+- `AWS_ACCESS_KEY_ID`: **(optional)** AWS account ID. This can come from `~/.aws` too.
+- `AWS_SECRET_ACCESS_KEY`: **(optional)** AWS access key. This can come from `~/.aws` too.
+- `AWS_REGION`: **(optional)** AWS region. This can come from `~/.aws` too.
+- `HEALTH_PORT`: **(optional)** Port to serve health information on.
+- `HEALTH_PATH`: **(optional)** Path your health information is on. Defaults to `/health`.
 
 > I recommend using [direnv](http://direnv.net) to manage your environment variables
 

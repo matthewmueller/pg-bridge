@@ -148,7 +148,13 @@ func Health(port string, pg *pq.Listener) *http.ServeMux {
 	})
 
 	mux := http.NewServeMux()
-	mux.Handle("/health", healthz.Handler())
+
+	path := os.Getenv("HEALTH_PATH")
+	if path == "" {
+		path = "/health"
+	}
+
+	mux.Handle(path, healthz.Handler())
 	http.ListenAndServe(":"+os.Getenv("HEALTH_PORT"), mux)
 	return mux
 }

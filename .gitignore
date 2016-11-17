@@ -1,2 +1,3 @@
-.envrc
-functions/
+/.envrc
+/functions
+/project.json
