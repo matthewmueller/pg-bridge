@@ -22,7 +22,7 @@ Simple service connecting [PostgreSQL notifications](https://www.postgresql.org/
 
 Here's the format:
 
-    BRIDGE_ROUTES="CHANNEL_A,SNS_TOPIC_ARN_1;CHANNEL_B,SNS_TOPIC_ARN_1"
+    BRIDGE_ROUTES="CHANNEL_A,SNS_TOPIC_ARN_A;CHANNEL_B,SNS_TOPIC_ARN_B;CHANNEL_C,SNS_TOPIC_ARN_B"
 
 Here's an example:
 
