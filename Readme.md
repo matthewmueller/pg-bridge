@@ -14,7 +14,7 @@ Simple service connecting [PostgreSQL notifications](https://www.postgresql.org/
 - `AWS_SECRET_ACCESS_KEY`: (optional) AWS access key.
 - `POSTGRES_URL`: (required) URL string to connect to Postgres.
 - `HEALTH_PORT`: (optional) 5000
-- `BRIDGE_ROUTES`: (required) comma-delimited list of routes. See [below](#routes-format)
+- `BRIDGE_ROUTES`: (required) comma-delimited list of routes. See [Routes Format](#routes-format).
 
 > I recommend using [direnv](http://direnv.net) to manage your environment variables
 
