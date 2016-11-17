@@ -1,4 +1,4 @@
-# Postgres → SNS Bridge
+# PostgreSQL → SNS Bridge
 
 Simple service connecting [PostgreSQL notifications](https://www.postgresql.org/docs/9.0/static/sql-notify.html) to [Amazon SNS](https://aws.amazon.com/sns/).
 
