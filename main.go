@@ -39,11 +39,16 @@ func main() {
 	pg := Postgres(routes)
 	defer pg.Close()
 
-	// setup SNS
+	// Setup SNS
+	// @TODO figure out how to check that the required
+	// variables are actually present in the session
 	pub := sns.New(session.New())
 
 	// setup a healthcheck on /health
-	go Health(pg)
+	healthPort := os.Getenv("HEALTH_PORT")
+	if healthPort != "" {
+		go Health(healthPort, pg)
+	}
 
 	keys := make([]string, 0, len(routes))
 	for k := range routes {
@@ -136,7 +141,7 @@ func Postgres(routes map[string]string) *pq.Listener {
 }
 
 // Health simple healthcheck service
-func Health(pg *pq.Listener) *http.ServeMux {
+func Health(port string, pg *pq.Listener) *http.ServeMux {
 
 	healthz.Register("postgres", time.Second*5, func() error {
 		return pg.Ping()
