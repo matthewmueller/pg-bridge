@@ -1,3 +1,5 @@
 /.envrc
+/.env
 /functions
 /project.json
+releases
