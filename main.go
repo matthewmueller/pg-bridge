@@ -116,10 +116,12 @@ func Postgres(routes map[string]string) *pq.Listener {
 		log.Fatal("POSTGRES_URL environment variable required")
 	}
 
+	log.Infof("connecting to postgres: %s", conninfo)
 	_, err := sql.Open("postgres", conninfo)
 	if err != nil {
 		log.WithError(err).Fatal("could not connect to postgres")
 	}
+	log.Infof("connected to postgres")
 
 	reportProblem := func(ev pq.ListenerEventType, err error) {
 		if err != nil {
