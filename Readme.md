@@ -2,12 +2,12 @@
 
 Simple bridge for [PostgreSQL notifications](https://www.postgresql.org/docs/9.0/static/sql-notify.html)
 
-## Features
+## Bridge Support
 
   - PostgreSQL → [Amazon SNS](https://aws.amazon.com/sns/)
   - PostgreSQL → [HTTP Webhooks](https://requestb.in/)
 
-  This package also includes:
+## Additional Features
 
   - Optional health checks to ensure that this service is operating normally
   - A Dockerfile to easily deploy this service to any docker-friendly cloud provider
