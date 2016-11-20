@@ -1,0 +1,13 @@
+{
+  "postgres": {
+    "url": "postgres://authenticator"
+  },
+  "routes": [
+    "task.create http://requestb.in/1bpu3kl1",
+    "task.update arn:aws:sns:us-west-2:524239597733:BRIDGE"
+  ],
+  "health": {
+    "port": 5000,
+    "path": "/health"
+  }
+}

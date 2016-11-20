@@ -1,12 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
+	"flag"
+	"io/ioutil"
+	"strings"
+
 	"fmt"
 	"net"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	healthz "github.com/MEDIGO/go-healthz"
@@ -18,20 +23,69 @@ import (
 	"github.com/lib/pq"
 )
 
+var usage = `
+    PG Bridge: Send Postgres notifications to SNS or to a webhook.
+
+    Usage:
+
+      pg-bridge -c config.json
+
+    Options:
+
+      -c FILE, --conf FILE    Configuration file for PG Bridge
+      -h, --help              Show this screen
+      -v, --version           Get the version
+`
+
+type Health struct {
+	Port int    `json:"port"`
+	Path string `json:"path"`
+}
+
+// Config struct for the JSON config file
+type Config struct {
+	Postgres struct {
+		URL string `json:"url"`
+	} `json:"postgres"`
+	Routes []string
+	Health `json:"health"`
+}
+
+var config string
+
+func init() {
+	flag.StringVar(&config, "c", "", "configuration file")
+	flag.StringVar(&config, "conf", "", "configuration file")
+}
+
 func main() {
 	log.SetHandler(text.New(os.Stderr))
+	flag.Parse()
 
-	routesEnv := os.Getenv("BRIDGE_ROUTES")
-	if routesEnv == "" {
-		log.Fatal("BRIDGE_ROUTES environment variable required to handle the routing")
+	if config == "" {
+		println(usage)
+		os.Exit(1)
 	}
 
-	routing := strings.Split(routesEnv, ";")
-	routes := make(map[string]string)
-	for _, route := range routing {
-		r := strings.Split(route, ",")
-		if len(r) == 2 {
-			routes[r[0]] = r[1]
+	conf, err := ioutil.ReadFile(config)
+	if err != nil {
+		log.WithError(err).Fatal("could not read config")
+	}
+
+	var mapping Config
+	err = json.Unmarshal(conf, &mapping)
+	if err != nil {
+		log.WithError(err).Fatal("could not decode JSON")
+	}
+
+	routes := map[string][]string{}
+	for _, v := range mapping.Routes {
+		route := strings.Split(v, " ")
+		if routes[route[0]] != nil {
+			routes[route[0]] = append(routes[route[0]], route[1])
+		} else {
+			routes[route[0]] = []string{}
+			routes[route[0]] = append(routes[route[0]], route[1])
 		}
 	}
 
@@ -45,20 +99,26 @@ func main() {
 	pub := sns.New(session.New())
 
 	// setup a healthcheck on /health
-	healthPort := os.Getenv("HEALTH_PORT")
-	if healthPort != "" {
-		go Health(healthPort, pg)
+	if mapping.Health.Port != 0 {
+		go HTTP(mapping.Health, pg)
 	}
 
-	keys := make([]string, 0, len(routes))
-	for k := range routes {
-		keys = append(keys, k)
+	// route the notifications
+	for {
+		n := <-pg.Notify
+		log.WithField("payload", n.Extra).Infof("notification from %s", n.Channel)
+
+		// fetch the associated topic
+		topics := routes[n.Channel]
+		for _, topic := range topics {
+			// publish in a separate goroutine
+			if strings.HasPrefix(topic, "http") {
+				go publishHTTP(n.Channel, topic, n.Extra)
+			} else {
+				go publishSNS(pub, n.Channel, topic, n.Extra)
+			}
+		}
 	}
-
-	log.Infof("listening for notifications on %s", strings.Join(keys, ", "))
-
-	// start waiting for notifications to come in
-	Notifications(pg, pub, routes)
 }
 
 // Handles incoming requests.
@@ -76,47 +136,50 @@ func handleRequest(conn net.Conn) {
 	conn.Close()
 }
 
-// Notifications processes
-func Notifications(pg *pq.Listener, pub *sns.SNS, routes map[string]string) {
-	for {
-		n := <-pg.Notify
-		log.WithField("payload", n.Extra).Infof("notification from %s", n.Channel)
-
-		// fetch the associated topic
-		topic := routes[n.Channel]
-		if topic == "" {
-			log.WithField("channel", n.Channel).Error("no sns topic for channel")
-		}
-
-		payload := &sns.PublishInput{
-			Message:  aws.String(n.Extra),
-			TopicArn: aws.String(topic),
-		}
-
-		// publish in a separate goroutine
-		go publish(pub, payload, n)
-	}
-}
-
 // publish payload to SNS
-func publish(pub *sns.SNS, payload *sns.PublishInput, n *pq.Notification) {
-	_, err := pub.Publish(payload)
-	if err != nil {
-		log.WithError(err).WithField("channel", n.Channel).WithField("payload", n.Extra).Error("unable to send payload to SNS")
+func publishSNS(pub *sns.SNS, channel string, topic string, payload string) {
+	SNSPayload := &sns.PublishInput{
+		Message:  aws.String(payload),
+		TopicArn: aws.String(topic),
 	}
 
-	log.Infof("delivered notification from %s to SNS", n.Channel)
+	_, err := pub.Publish(SNSPayload)
+	if err != nil {
+		log.WithError(err).WithField("channel", channel).WithField("payload", payload).Error("unable to send payload to SNS")
+	}
+
+	log.Infof("delivered notification from %s to SNS", channel)
 	return
 }
 
+func publishHTTP(channel string, topic string, payload string) {
+	body := []byte(payload)
+	req, err := http.NewRequest("POST", topic, bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.WithError(err).Error("unable to POST")
+	}
+	defer resp.Body.Close()
+
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.WithError(err).Error("cannot read body")
+	}
+
+	log.Infof("delivered notification from %s to %s with this response: %s", channel, topic, resp.Status)
+}
+
 // Postgres connect to postgres
-func Postgres(routes map[string]string) *pq.Listener {
+func Postgres(routes map[string][]string) *pq.Listener {
 	conninfo := os.Getenv("POSTGRES_URL")
 	if conninfo == "" {
 		log.Fatal("POSTGRES_URL environment variable required")
 	}
 
-	log.Infof("connecting to postgres: %s", conninfo)
+	log.Infof("connecting to postgres: %s...", conninfo)
 	_, err := sql.Open("postgres", conninfo)
 	if err != nil {
 		log.WithError(err).Fatal("could not connect to postgres")
@@ -129,11 +192,14 @@ func Postgres(routes map[string]string) *pq.Listener {
 		}
 	}
 
+	log.Infof("setting up a listener...")
 	listener := pq.NewListener(conninfo, 10*time.Second, time.Minute, reportProblem)
+	log.Infof("set up a listener")
 
 	// listen on each channel
 	for channel := range routes {
-		listener.Listen(channel)
+		log.Infof("listening on '%s'", channel)
+		err := listener.Listen(channel)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
@@ -142,8 +208,8 @@ func Postgres(routes map[string]string) *pq.Listener {
 	return listener
 }
 
-// Health simple healthcheck service
-func Health(port string, pg *pq.Listener) *http.ServeMux {
+// HTTP Health simple healthcheck service
+func HTTP(health Health, pg *pq.Listener) *http.ServeMux {
 
 	healthz.Register("postgres", time.Second*5, func() error {
 		return pg.Ping()
