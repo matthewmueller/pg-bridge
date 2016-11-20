@@ -1,35 +1,44 @@
-# PostgreSQL → SNS Bridge
+# PostgreSQL Bridge
 
-Simple service connecting [PostgreSQL notifications](https://www.postgresql.org/docs/9.0/static/sql-notify.html) to [Amazon SNS](https://aws.amazon.com/sns/).
+Simple bridge for [PostgreSQL notifications](https://www.postgresql.org/docs/9.0/static/sql-notify.html)
 
 ## Features
 
-  - Flexible Routing: Supports one-to-one and one-to-many routing
-  - Heroku-friendly: Configuration is done entirely through environment variables
-  - Health checks: Optional HTTP endpoint to ensure that this service is operating normally
+  - PostgreSQL → [Amazon SNS](https://aws.amazon.com/sns/)
+  - PostgreSQL → [HTTP Webhooks](https://requestb.in/)
 
-## Environment Variables
+  This package also includes:
 
-- `PGB_URL`: **(required)** URL string to connect to Postgres.
-- `PGB_ROUTES`: **(required)** comma-delimited list of routes. See [Routes Format](#routes-format) for how to configure this variable.
-- `AWS_ACCESS_KEY_ID`: **(optional)** AWS account ID. This can come from `~/.aws` too.
-- `AWS_SECRET_ACCESS_KEY`: **(optional)** AWS access key. This can come from `~/.aws` too.
-- `AWS_REGION`: **(optional)** AWS region. This can come from `~/.aws` too.
-- `PGB_HEALTH_PORT`: **(optional)** Port to serve health information on.
-- `PGB_HEALTH_PATH`: **(optional)** Path your health information is on. Defaults to `/health`.
+  - Optional health checks to ensure that this service is operating normally
+  - A Dockerfile to easily deploy this service to any docker-friendly cloud provider
 
-> I recommend using [direnv](http://direnv.net) to manage your environment variables
+## Running this Service
 
-## Routes Format
+```sh
+pg-bridge --conf bridge.json
+```
 
-Here's the format:
+## Example Configuration
 
-    BRIDGE_ROUTES="CHANNEL_A,SNS_TOPIC_ARN_A;CHANNEL_B,SNS_TOPIC_ARN_B;CHANNEL_C,SNS_TOPIC_ARN_B"
+```json
+{
+  "postgres": {
+    "url": "postgres://authenticator"
+  },
+  "routes": [
+    "task.create http://requestb.in/1bpu3kl1",
+    "task.update arn:aws:sns:us-west-2:1234:somewhere"
+  ],
+  "health": {
+    "port": 5000,
+    "path": "/health"
+  }
+}
+```
 
-Here's an example:
+## TODO
 
-    BRIDGE_ROUTES="task.create,arn:aws:sns:us-west-2:123:taskcreate;task.update,arn:aws:sns:us-west-2:456:taskupdate"
-
+- SQS support
 
 ## License
 
