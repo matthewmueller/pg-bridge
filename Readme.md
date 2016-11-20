@@ -23,7 +23,7 @@ pg-bridge --conf bridge.json
 ```json
 {
   "postgres": {
-    "url": "postgres://authenticator"
+    "url": "postgres://user:pass@localhost:5432/database"
   },
   "routes": [
     "task.create http://requestb.in/1bpu3kl1",

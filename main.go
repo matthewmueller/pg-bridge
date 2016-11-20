@@ -37,18 +37,22 @@ var usage = `
       -v, --version           Get the version
 `
 
+// Health structure
 type Health struct {
 	Port int    `json:"port"`
 	Path string `json:"path"`
 }
 
+// Postgres connection structure
+type Postgres struct {
+	URL string `json:"url"`
+}
+
 // Config struct for the JSON config file
 type Config struct {
-	Postgres struct {
-		URL string `json:"url"`
-	} `json:"postgres"`
-	Routes []string
-	Health `json:"health"`
+	Postgres `json:"postgres"`
+	Routes   []string
+	Health   `json:"health"`
 }
 
 var config string
@@ -90,7 +94,7 @@ func main() {
 	}
 
 	// setup Postgres
-	pg := Postgres(routes)
+	pg := ConnectPostgres(mapping.Postgres, routes)
 	defer pg.Close()
 
 	// Setup SNS
@@ -172,11 +176,11 @@ func publishHTTP(channel string, topic string, payload string) {
 	log.Infof("delivered notification from %s to %s with this response: %s", channel, topic, resp.Status)
 }
 
-// Postgres connect to postgres
-func Postgres(routes map[string][]string) *pq.Listener {
-	conninfo := os.Getenv("POSTGRES_URL")
+// ConnectPostgres connect to postgres
+func ConnectPostgres(postgres Postgres, routes map[string][]string) *pq.Listener {
+	conninfo := postgres.URL
 	if conninfo == "" {
-		log.Fatal("POSTGRES_URL environment variable required")
+		log.Fatal("postgres.url value required in the configuration")
 	}
 
 	log.Infof("connecting to postgres: %s...", conninfo)
