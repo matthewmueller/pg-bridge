@@ -7,9 +7,9 @@ release:
 	@echo "[+] committing"
 	@git release $(VERSION)
 	@echo "[+] docker build"
-	@docker build -t mattmueller/pg-sns-bridge:$(VERSION) .
+	@docker build -t mattmueller/pg-bridge:$(VERSION) .
 	@echo "[+] docker push"
-	@docker push mattmueller/pg-sns-bridge:$(VERSION)
+	@docker push mattmueller/pg-bridge:$(VERSION)
 	@echo "[+] complete"
 .PHONY: release
 
