@@ -8,8 +8,6 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"time"
@@ -125,21 +123,6 @@ func main() {
 	}
 }
 
-// Handles incoming requests.
-func handleRequest(conn net.Conn) {
-	// Make a buffer to hold incoming data.
-	buf := make([]byte, 1024)
-	// Read the incoming connection into the buffer.
-	_, err := conn.Read(buf)
-	if err != nil {
-		fmt.Println("Error reading:", err.Error())
-	}
-	// Send a response back to person contacting us.
-	conn.Write([]byte("Message received."))
-	// Close the connection when you're done with it.
-	conn.Close()
-}
-
 // publish payload to SNS
 func publishSNS(pub *sns.SNS, channel string, topic string, payload string) {
 	SNSPayload := &sns.PublishInput{
@@ -158,19 +141,28 @@ func publishSNS(pub *sns.SNS, channel string, topic string, payload string) {
 
 func publishHTTP(channel string, topic string, payload string) {
 	body := []byte(payload)
+
 	req, err := http.NewRequest("POST", topic, bytes.NewBuffer(body))
+	if err != nil {
+		log.WithError(err).Error("error POSTing")
+		return
+	}
+
 	req.Header.Set("Content-Type", "application/json")
 
+	log.Info("POSTing...")
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.WithError(err).Error("unable to POST")
+		return
 	}
 	defer resp.Body.Close()
 
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.WithError(err).Error("cannot read body")
+		return
 	}
 
 	log.Infof("delivered notification from %s to %s with this response: %s", channel, topic, resp.Status)
