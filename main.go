@@ -176,11 +176,15 @@ func ConnectPostgres(postgres Postgres, routes map[string][]string) *pq.Listener
 	}
 
 	log.Infof("connecting to postgres: %s...", conninfo)
-	_, err := sql.Open("postgres", conninfo)
+	client, err := sql.Open("postgres", conninfo)
 	if err != nil {
 		log.WithError(err).Fatal("could not connect to postgres")
 	}
 	log.Infof("connected to postgres")
+
+	if err := client.Ping(); err != nil {
+		log.WithError(err).Fatal("error connecting to postgres")
+	}
 
 	reportProblem := func(ev pq.ListenerEventType, err error) {
 		if err != nil {
