@@ -3,3 +3,5 @@
 /functions
 /project.json
 releases
+
+*.sh

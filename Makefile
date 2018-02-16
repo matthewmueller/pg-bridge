@@ -4,13 +4,13 @@ release:
 	@go generate ./...
 	@echo "[+] building"
 	@$(MAKE) build
-	@echo "[+] committing"
-	@git release $(VERSION)
-	@echo "[+] docker build"
-	@docker build -t mattmueller/pg-bridge:$(VERSION) .
-	@echo "[+] docker push"
-	@docker push mattmueller/pg-bridge:$(VERSION)
-	@echo "[+] complete"
+	#@echo "[+] committing"
+	#@git release $(VERSION)
+	#@echo "[+] docker build"
+	#@docker build -t mattmueller/pg-bridge:$(VERSION) .
+	#@echo "[+] docker push"
+	#@docker push mattmueller/pg-bridge:$(VERSION)
+	#@echo "[+] complete"
 .PHONY: release
 
 test:
