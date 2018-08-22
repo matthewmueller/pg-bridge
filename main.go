@@ -26,6 +26,8 @@ var usage = `
 
     Usage:
 
+      pg-bridge  
+
       pg-bridge -c config.json
 
     Options:
@@ -33,6 +35,12 @@ var usage = `
       -c FILE, --conf FILE    Configuration file for PG Bridge
       -h, --help              Show this screen
       -v, --version           Get the version
+	
+    Environment Variables
+
+	  You can provide the config json via an environment variable called PGBRIDGE.
+	  The easiest way to format this is to write the json, inline and wrap in quotes:
+	  export PGBRIDGE='{"postgres": {"url": "postgres://...."}}'
 `
 
 // Health structure
@@ -64,20 +72,29 @@ func main() {
 	log.SetHandler(text.New(os.Stderr))
 	flag.Parse()
 
-	if config == "" {
-		println(usage)
-		os.Exit(1)
-	}
-
-	conf, err := ioutil.ReadFile(config)
-	if err != nil {
-		log.WithError(err).Fatal("could not read config")
-	}
-
 	var mapping Config
-	err = json.Unmarshal(conf, &mapping)
-	if err != nil {
-		log.WithError(err).Fatal("could not decode JSON")
+	if config == "" {
+		env_pgbridge := os.Getenv("PGBRIDGE")
+		if env_pgbridge != "" {
+			log.Infof("Extracting config from PGBRIDGE environment variable ", env_pgbridge)
+			err := json.Unmarshal([]byte(env_pgbridge), &mapping)
+			if err != nil {
+				log.WithError(err).Fatal("could not read environment variable")
+			}
+		} else {
+			println(usage)
+			os.Exit(1)
+		}
+	} else {
+		conf, err := ioutil.ReadFile(config)
+		if err != nil {
+			log.WithError(err).Fatal("could not read config")
+		}
+
+		err = json.Unmarshal(conf, &mapping)
+		if err != nil {
+			log.WithError(err).Fatal("could not decode JSON")
+		}
 	}
 
 	routes := map[string][]string{}
